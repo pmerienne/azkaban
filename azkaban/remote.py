@@ -518,6 +518,34 @@ class Session(object):
       )
     return res['schedule']
 
+  def sla(self, schedule, delay, rule='SUCCESS', emails=None, kill=True):
+    """Set schedule's SLA.
+
+    :param schedule: Schedule ID.
+    :param delay: SLA delay (format %H:%M, i.e. 00:45)
+    :param job: Job name (or empty to set SLA on flow).
+    :param rule: Status to check when duration ends `'SUCCESS'` or `'FINISHED'`
+    :param emails: Comma separated list of emails used for alerting
+    :param kill: Trigger the kill action
+    """
+    self._logger.debug('Setting SLA on schedule %s.', schedule)
+    send_email = 'true' if emails else 'false'
+    kill_workflow = str(kill).lower()
+    settings = ',%s,%s,%s,%s' % (rule, delay, send_email, kill_workflow)
+    request_data = {
+      'ajax': 'setSla',
+      'scheduleId': schedule,
+      'slaEmails': ','.join(emails),
+      'settings[0]': settings
+    }
+    res = self._request(
+      method='POST',
+      endpoint='schedule',
+      data=request_data,
+    )
+    self._logger.info('SLA changed on schedule %s.', schedule)
+    return res
+
   def _get_project_id(self, name):
     """Fetch the id of a project.
 

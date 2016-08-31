@@ -12,6 +12,9 @@ Usage:
   azkaban schedule [-jkp PROJECT] [-a ALIAS | -u URL] [-b | -m MODE]
                    [-e EMAIL ...] [-o OPTION ...] [-s SPAN] (-d DATE) (-t TIME)
                    FLOW [JOB ...]
+  azkaban sla [-a ALIAS | -u URL] (--delay=DELAY) [--rule=RULE]
+                  [-e EMAIL ...] [-k]
+                  SCHEDULE
   azkaban upload [-cp PROJECT] [-a ALIAS | -u URL] ZIP
   azkaban -h | --help | -l | --log | -v | --version
 
@@ -24,6 +27,7 @@ Commmands:
                                 the entire workflow will be executed.
   schedule                      Schedule a workflow to be run at a specified
                                 date and time.
+  sla                           Set SLA on a schedule.
   upload                        Upload archive to Azkaban server.
 
 Arguments:
@@ -46,6 +50,7 @@ Options:
   -c --create                   Create the project if it does not exist.
   -d DATE --date=DATE           Date used for first run of a schedule. It must
                                 be in the format `MM/DD/YYYY`.
+  --delay=DELAY                 SLA delay to trigger alert
   -e EMAIL --email=EMAIL        Email address to be notified when the workflow
                                 finishes (can be specified multiple times).
   -f --files                    List project files instead of jobs. The first
@@ -76,6 +81,7 @@ Options:
                                 registered, you can disambiguate as follows:
                                 `--project=module:project_name`.
   -r --replace                  Overwrite any existing file.
+  --rule=RULE                   SLA status to trigger alert
   -s SPAN --span=SPAN           Period to repeat the scheduled flow. Must be
                                 in format `1d`, a combination of magnitude and
                                 unit of repetition. If not specified, the flow
@@ -421,6 +427,19 @@ def schedule_workflow(project_name, _date, _time, _span, _flow, _job, _url,
     'Flow %s scheduled successfully.\n' % (_flow, )
   )
 
+def sla(_url, _alias, _schedule, _delay, _rule, _email, _kill):
+  """Set schedule's SLA"""
+  session = _get_session(_url, _alias)
+  kwargs = {
+    'schedule': _schedule,
+    'delay': _delay,
+    'rule': _rule,
+    'emails': _email,
+    'kill': _kill
+  }
+  session.sla(**kwargs)
+  sys.stdout.write('Successfully added SLA on schedule %s\n' % (_schedule, ))
+
 def upload_project(project_name, _zip, _url, _alias, _create):
   """Upload project."""
   session = _get_session(_url, _alias)
@@ -531,6 +550,13 @@ def main(argv=None):
           'FLOW', 'JOB', '--bounce', '--url', '--alias', '--kill', '--email',
           '--option', '--date', '--time', '--span', '--jump', '--mode',
         ]
+      )
+    )
+  elif args['sla']:
+    sla(
+      **_forward(
+        args,
+        ['SCHEDULE', '--url', '--alias', '--delay', '--rule', '--email', '--kill']
       )
     )
   elif args['upload']:
